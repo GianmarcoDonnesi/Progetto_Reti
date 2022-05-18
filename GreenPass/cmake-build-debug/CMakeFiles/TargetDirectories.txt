@@ -1,0 +1,3 @@
+C:/Users/gianm/CLionProjects/GreenPass/cmake-build-debug/CMakeFiles/GreenPass.dir
+C:/Users/gianm/CLionProjects/GreenPass/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/gianm/CLionProjects/GreenPass/cmake-build-debug/CMakeFiles/rebuild_cache.dir
