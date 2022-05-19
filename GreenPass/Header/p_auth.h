@@ -8,6 +8,7 @@
 typedef struct P_AUTH {
     char Cod_Fiscale[16];
     char passw [15];
+    char richiesta;
 }p_auth;
 
 
