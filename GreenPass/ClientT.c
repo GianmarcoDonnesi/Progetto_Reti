@@ -19,7 +19,7 @@ void StartMenu(int sockfd) {
         fputs("2) Invalida o ripristina GreenPass\n", stdout);
         fputs("3) Esci\n", stdout);
         sm = getchar();
-    } while (sm < '1' || sm > '2');
+    } while (sm < '1' || sm > '3');
     clear();
     getchar();
     switch (sm) {
@@ -31,7 +31,7 @@ void StartMenu(int sockfd) {
             break;
         case '3':
             fputs("Client chiuso\n",stdout);
-            break;
+            exit(0);
         default:
             exit(0);
     }
@@ -43,12 +43,11 @@ void invioTesseraSanitaria(int sfd) {
     char CodiceTS[20];
     char ris;
 
-    do {
         fputs("---Comunicazione con centro vaccinale---\n", stdout);
         fputs("Inserire Codice Tessera Sanitaria: ", stdout);
         fgets(CodiceTS, sizeof(CodiceTS), stdin);
         fflush(stdin);
-        write(sfd,"T-1",1);
+        write(sfd,"T-1",4);
         write(sfd, &CodiceTS, sizeof(CodiceTS));	    /* invio richiesta al centro vaccinale */
         /* lettura esito */
 
@@ -56,13 +55,11 @@ void invioTesseraSanitaria(int sfd) {
             fputs("Errore di connessione con il Server.\n", stderr);
             exit(1);
         }
-        if (ris == '1')
+        if (strcmp(&ris,"1") == 0)
             fprintf(stdout, "Codice inviato correttamente!\n");
-        else {
-            if (ris == '2')
+        else if (strcmp(&ris,"2") == 0){
                 fputs("Invio non riuscito.\n", stderr);
         }
-    } while (ris != '0');
 
     exit(0);
 }
@@ -72,7 +69,6 @@ void controlloContagio(int sockfd) {
     struct P_RICHIESTAT richiesta;
     char ris;
 
-    do {
         fputs("---Comunicazione con ServerG---\n", stdout);
         fputs("Inserire Codice Tessera Sanitaria: ", stdout);
         fgets(richiesta.numero_tessera, 20, stdin);
@@ -81,21 +77,19 @@ void controlloContagio(int sockfd) {
         fgets(richiesta.controllo_contagio, 2, stdin);
         fflush(stdin);
 
-        write(sockfd,"T-2",1);
+        write(sockfd,"T-2",4);
         write(sockfd, &richiesta, sizeof(struct P_RICHIESTAT));	    /* invio richiesta al centro vaccinale */
                                                               /* lettura esito */
 
-        if (read(sockfd, &ris, 1)) {
+    if (read(sockfd, &ris, sizeof (ris))) {
             fputs("Errore di connessione con il Server.\n", stderr);
             exit(1);
         }
-        if (ris == '1')
+        if (strcmp(&ris,"1") == 0)
             fprintf(stdout, "Segnalazione effettuata con successo!\n");
-        else {
-            if (ris == '2')
+        else if (strcmp(&ris,"2") == 0){
                 fputs("Invio non riuscito.\n", stderr);
         }
-    } while (ris != '0');
 
     exit(0);
 }
@@ -104,7 +98,6 @@ void controlloContagio(int sockfd) {
 
 int main(int argc, char **argv) {
     int                sockfd;
-    char               tessera_sanitaria[20] ;
     struct sockaddr_in servaddr;
 
     if (argc != 2) {
@@ -118,7 +111,7 @@ int main(int argc, char **argv) {
         exit (1);
     }
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(1026);
+    servaddr.sin_port = htons(8026);
 
     if (inet_pton(AF_INET, argv[1], &servaddr.sin_addr) < 0) {
         fprintf(stderr,"inet_pton error for %s\n", argv[1]);
@@ -129,7 +122,6 @@ int main(int argc, char **argv) {
         fprintf(stderr,"Connessione fallita\n");
         exit(1);
     }
-
     StartMenu(sockfd);                                        /* comunicazione con CentroVaccinale */
     exit(0);
 }

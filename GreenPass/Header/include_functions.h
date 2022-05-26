@@ -173,3 +173,5 @@ FILE *Fopen(const char *pathname, const char *mode) {
     }
     return file;
 }
+
+#endif

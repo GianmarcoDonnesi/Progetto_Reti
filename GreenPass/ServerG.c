@@ -1,6 +1,7 @@
-#include "Header/ServerG.h"
+#include "Header/Server.h"
 
-
+//sfd descrittore come server
+//sfd1 descrittore come client
 void invioRichiestaS(int sfd, int sfd1) {
 
     char CodiceTS[20];
@@ -9,15 +10,14 @@ void invioRichiestaS(int sfd, int sfd1) {
         read(sfd,&CodiceTS,sizeof(CodiceTS));
         write(sfd1,&CodiceTS, sizeof(CodiceTS));
 
-        if (read(sfd1, &ris, 1)) {
+    if (read(sfd1, &ris, sizeof (ris))) {
             fputs("Errore di connessione con il ServerV.\n", stderr);
             exit(1);
         }
-        if (ris == '1') {
-            write(sfd, 1, sizeof(short));
-        }else {
-                if (ris == '2')
-                    write(sfd, 2, sizeof(short));
+        if (strcmp(&ris,"1") == 0) {
+            write(sfd, "1", 2);
+        }else if (strcmp(&ris,"2") == 0){
+                    write(sfd, "2", 2);
             }
     exit(0);
         }
@@ -32,32 +32,23 @@ void invioRichiestaT(int sfd, int sfd1) {
         read(sfd, &richiestaT, sizeof(struct P_RICHIESTAT));
         write(sfd1, &richiestaT, sizeof(struct P_RICHIESTAT));
 
-        if (read(sfd1, &ris, 1)) {
+    if (read(sfd1, &ris, sizeof (ris))) {
             fputs("Errore di connessione con il ServerV.\n", stderr);
             exit(1);
         }
-        if (ris == '1') {
-            write(sfd, 1, sizeof(short));
-        }else {
-            if (ris == '2')
-                write(sfd, 2, sizeof(short));
-        }
+    if (strcmp(&ris,"1") == 0) {
+        write(sfd, "1", 2);
+    }else  if (strcmp(&ris,"2") == 0){
+        write(sfd, "2", 2);
+    }
 
     exit(0);
 }
 
 
-/*void invioRisposta(int sfd, int ris) {
-     invio risposta a un ClientS o ad un ClientT
-    *write(sfd, &ris, sizeof(ris));
-
-    *exit(0);
-* }
-*/
-
 
 int main(int argc, char **argv) {
-    int portV = 1025, portG = 1026;
+    int portV = 8025, portG = 8026;
 
 
     /* VARIABILI SERVER verso ClientS o ClientT */
@@ -67,8 +58,8 @@ int main(int argc, char **argv) {
 	 *	connfd: descrittore di connessione
 	 *	sockfd: descrittore di servizio
 	 */
-    struct sockaddr_in s_servaddr, s_cliaddr;
-    int len;
+    struct sockaddr_in s_servaddr,client;
+    socklen_t len;
     pid_t pid;
 
     /* 	servaddr: informazioni indirizzo server
@@ -77,11 +68,14 @@ int main(int argc, char **argv) {
 
     /* VARIABILI CLIENT verso ServerV */
     struct sockaddr_in c_servaddr;
-    int masterfd;
+    int Vfd;
 
     /* CLIENT verso serverV */
     /* creazione socket */
-    masterfd = socket(AF_INET, SOCK_STREAM, 0);
+    if ( (Vfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        fprintf(stderr,"socket error\n");
+        exit (1);
+    }
     c_servaddr.sin_family = AF_INET;
     c_servaddr.sin_port = htons(portV);
 
@@ -92,21 +86,23 @@ int main(int argc, char **argv) {
     }
 
     /* connessione al serverV */
-    if (connect(masterfd, (struct sockaddr *) &c_servaddr, sizeof(c_servaddr)) < 0) {
+    if (connect(Vfd, (struct sockaddr *) &c_servaddr, sizeof(c_servaddr)) < 0) {
         fprintf(stderr, "Connessione fallita\n");
         exit(1);
     }
-    fputs("Connessione al serverV\n", stdout);
+
+    fputs("Connesso al ServerV\n", stdout);
     if(strcmp(identificativo_client,"S") == 0){
-        write(masterfd, "S", 4);
-        invioRichiestaS(listenfd,masterfd);
+        write(Vfd, "S", 2);
+        invioRichiestaS(connfd,Vfd);
     }else if (strcmp(identificativo_client,"T-1") == 0){
-        write(masterfd, "T-1", 4);
-        invioRichiestaT(listenfd,masterfd);
+        write(Vfd, "T-1", 4);
+        invioRichiestaT(connfd,Vfd);
     }else if(strcmp(identificativo_client,"T-2") == 0){
-        write(masterfd, "T-2", 4);
-        invioRichiestaT(listenfd,masterfd);
+        write(Vfd, "T-2", 4);
+        invioRichiestaT(connfd,Vfd);
     }
+    close(Vfd);
 
     /* SERVER verso clientS o clientT */
     /* creazione socket */
@@ -132,7 +128,7 @@ int main(int argc, char **argv) {
     }
 
     while(1){
-        len = sizeof(s_cliaddr);
+        len = sizeof(client);
         if ( ( connfd = accept(listenfd, (struct sockaddr *) NULL, NULL) ) < 0 ) {
             perror("accept");
             exit(1);

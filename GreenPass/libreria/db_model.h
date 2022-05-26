@@ -10,10 +10,10 @@
 #include <string.h>
 
 struct UTENTE {
-    char numerotessera [20];
-    char codice [20];
-    char data_scadenza[10];
-    int validita;
+    char numerotessera [21];
+    char codice [21];
+    char data_scadenza[11];
+    char validita[2];
 };
 
 

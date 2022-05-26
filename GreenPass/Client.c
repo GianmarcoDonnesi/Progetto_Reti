@@ -26,7 +26,7 @@ void StartMenu(int sockfd) {
                 break;
             case '2':
                 fputs("Client chiuso\n",stdout);
-                break;
+                exit(0);
             default:
                 exit(0);
         }
@@ -38,27 +38,25 @@ void invioTesseraSanitaria(int sfd) {
     char CodiceTS[20];
     char ris;
 
-    do {
         fputs("---Comunicazione con centro vaccinale---\n", stdout);
         fputs("Inserire Codice Tessera Sanitaria: ", stdout);
         fgets(CodiceTS, sizeof(CodiceTS), stdin);
         fflush(stdin);
-
-        Write(sfd, &CodiceTS, sizeof(CodiceTS));	    /* invio richiesta al centro vaccinale */
+        write(sfd, "CV",3);
+        write(sfd, &CodiceTS, sizeof(CodiceTS));	    /* invio richiesta al centro vaccinale */
                                                                                         /* lettura esito */
 
-        if (Read(sfd, &ris, 1)) {
+        if (read(sfd, &ris, sizeof (ris))) {
             fputs("Errore di connessione con il Server.\n", stderr);
             exit(1);
         }
-        if (ris == '1')
+        if (strcmp(&ris,"1") == 0)
             fprintf(stdout, "Codice inviato correttamente!\n");
         else {
-            if (ris == '2')
+            if (strcmp(&ris, "2") == 0)
                 fputs("Invio non riuscito.\n", stderr);
-        }
-    } while (ris != '0');
 
+        }
     exit(0);
 }
 
@@ -79,7 +77,7 @@ int main(int argc, char **argv) {
         exit (1);
     }
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(1024);
+    servaddr.sin_port = htons(8027);
 
     if (inet_pton(AF_INET, argv[1], &servaddr.sin_addr) < 0) {
         fprintf(stderr,"inet_pton error for %s\n", argv[1]);

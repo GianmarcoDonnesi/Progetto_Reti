@@ -1,46 +1,25 @@
-#include "Header/ServerG.h"
+#include "Header/Server.h"
 #include "Header/p_richiestaT.h"
-#include "/libreria/db_model.h"
+#include "libreria/db_model.h"
 
-void nuovoUtenteVaccinato(){
+void nuovoUtenteVaccinato(struct UTENTE Utente){
     FILE *fp = fopen("db.dat", "ab");
-    struct UTENTE Utente;
-
-    printf("Inserire il numero della tessera sanitaria: \n");
-    fgets(Utente.numerotessera, 20, stdin);
-    strcpy(Utente.numerotessera + strlen(Utente.numerotessera) - 1, "\0");
-    fflush(stdin);
-
-    printf("Inserire codice del GreenPass: \n");
-    fgets(Utente.codice, 20, stdin);
-    strcpy(Utente.codice + strlen(Utente.codice) - 1, "\0");
-    fflush(stdin);
-
-    printf("Inserire data validità GreenPass (GG-MM-AAAA): \n");
-    fgets(Utente.data_scadenza, 20, stdin);
-    strcpy(Utente.data_scadenza + strlen(Utente.data_scadenza) - 1, "\0");
-    fflush(stdin);
-
-    printf("Inserire validità: \n");
-    scanf("%d", &Utente.validita);
-    fflush(stdin);
-
     fwrite(&Utente, sizeof(struct UTENTE), 1, fp);
     fclose(fp);
 }
 
 void ricercaValidita(int connfd, char numerotessera[20]){
-    FILE *fp = fopen("db.dat", "ab");
+    FILE *fp = fopen("db.dat", "rb");
     struct UTENTE Utente;
 
     while (fread(&Utente, sizeof(struct UTENTE), 1, fp) > 0)
     {
         if (strcmp(Utente.numerotessera,numerotessera) == 0)
         {
-            if(Utente.validita == 1){
-                Write(connfd, 1, sizeof(short));
-            }else if(Utente.validita == 0){
-                Write(connfd, 2, sizeof (short));
+            if(strcmp(Utente.validita,"1") == 0){
+                write(connfd, "1", 2);
+            }else if(strcmp(Utente.validita,"0") == 0){
+                write(connfd, "2", 2);
             }
 
         }
@@ -49,27 +28,27 @@ void ricercaValidita(int connfd, char numerotessera[20]){
 }
 
 void modificavalidita(int connfd, struct P_RICHIESTAT richiestaT){
-    FILE *fp = fopen("db.dat", "ab");
+    FILE *fp = fopen("db.dat", "rb+");
     struct UTENTE Utente;
 
     while (fread(&Utente, sizeof(struct UTENTE), 1, fp) > 0)
     {
         if (strcmp(Utente.numerotessera,richiestaT.numero_tessera) == 0)
         {
-            if(Utente.validita == 0 && strcmp(richiestaT.controllo_contagio,"G") == 0){
-                Utente.validita = 1;
+            if(strcmp(Utente.validita,"0") == 0 && strcmp(richiestaT.controllo_contagio,"G") == 0){
+                Utente.validita[1] = '1';
                 fseek(fp, -sizeof(struct UTENTE), SEEK_CUR);
                 fwrite(&Utente, sizeof(struct UTENTE), 1, fp);
                 break;
 
-            } else if (Utente.validita == 1 && strcmp(richiestaT.controllo_contagio,"C") == 0){
-                Utente.validita = 0;
+            } else if (strcmp(Utente.validita,"1") == 0 && strcmp(richiestaT.controllo_contagio,"C") == 0){
+                Utente.validita[1] = '0';
                 fseek(fp, -sizeof(struct UTENTE), SEEK_CUR);
                 fwrite(&Utente, sizeof(struct UTENTE), 1, fp);
                 break;
             }
         }
-        write(connfd,1,sizeof (short));
+        write(connfd,"1",2);
     }
     fclose(fp);
 }
@@ -97,14 +76,26 @@ void rispostaS(int sfd){
     exit(0);
 }
 
+void rispostaCV(int sfd){
+
+    struct UTENTE risposta;
+
+    read(sfd,&risposta,sizeof (struct UTENTE));
+    write(sfd,"1",2);
+
+        nuovoUtenteVaccinato(risposta);
+    exit(0);
+
+}
 
 
-int main(char argc,char **argv){
-    int portV = 1025;
+int main(int argc,char **argv){
+
+    int portV = 8025;
     int listenfd, connfd, i;
     char identificativo[4];
     struct sockaddr_in s_servaddr, s_cliaddr;
-    int len;
+    socklen_t len;
     pid_t pid;
 
     if((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
@@ -145,6 +136,8 @@ int main(char argc,char **argv){
             rispostaT(connfd,identificativo);
 }else if(strcmp(identificativo,"S")==0){
                 rispostaS(connfd);
+            }else if(strcmp(identificativo,"CV")==0){
+                rispostaCV(connfd);
             }
             close(connfd);
             exit(0);
