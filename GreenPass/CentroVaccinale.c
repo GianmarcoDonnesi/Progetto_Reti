@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 
 
     /* VARIABILI SERVER verso ClientS o ClientT */
-    int listenfd, connfd, i;
+    int listenfd, connfd;
     char identificativo_client[3];
     /* 	listenfd: descrittore di ascolto
 	 *	connfd: descrittore di connessione
